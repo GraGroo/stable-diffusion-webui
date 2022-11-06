@@ -146,11 +146,14 @@ class EmbeddingDatabase:
         if possible_matches is None:
             return None, None
 
-        for ids, embedding in possible_matches:
-            if tokens[offset:offset + len(ids)] == ids:
-                return embedding, len(ids)
-
-        return None, None
+        return next(
+            (
+                (embedding, len(ids))
+                for ids, embedding in possible_matches
+                if tokens[offset : offset + len(ids)] == ids
+            ),
+            (None, None),
+        )
 
 
 def create_embedding(name, num_vectors_per_token, overwrite_old, init_text='*'):
@@ -186,7 +189,7 @@ def write_loss(log_directory, filename, step, epoch_len, values):
 
     if (step + 1) % shared.opts.training_write_csv_every != 0:
         return
-    write_csv_header = False if os.path.exists(os.path.join(log_directory, filename)) else True
+    write_csv_header = not os.path.exists(os.path.join(log_directory, filename))
 
     with open(os.path.join(log_directory, filename), "a+", newline='') as fout:
         csv_writer = csv.DictWriter(fout, fieldnames=["step", "epoch", "epoch_step", *(values.keys())])
@@ -264,7 +267,10 @@ def train_embedding(embedding_name, learn_rate, batch_size, data_root, log_direc
 
     ititial_step = embedding.step or 0
     if ititial_step >= steps:
-        shared.state.textinfo = f"Model has already been trained beyond specified max steps"
+        shared.state.textinfo = (
+            "Model has already been trained beyond specified max steps"
+        )
+
         return embedding, filename
 
     scheduler = LearnRateScheduler(learn_rate, steps, ititial_step)
@@ -374,7 +380,7 @@ def train_embedding(embedding_name, learn_rate, batch_size, data_root, log_direc
                 data = torch.load(last_saved_file)
                 info.add_text("sd-ti-embedding", embedding_to_b64(data))
 
-                title = "<{}>".format(data.get('name', '???'))
+                title = f"<{data.get('name', '???')}>"
 
                 try:
                     vectorSize = list(data['string_to_param'].values())[0].shape[0]
@@ -383,8 +389,8 @@ def train_embedding(embedding_name, learn_rate, batch_size, data_root, log_direc
 
                 checkpoint = sd_models.select_checkpoint()
                 footer_left = checkpoint.model_name
-                footer_mid = '[{}]'.format(checkpoint.hash)
-                footer_right = '{}v {}s'.format(vectorSize, steps_done)
+                footer_mid = f'[{checkpoint.hash}]'
+                footer_right = f'{vectorSize}v {steps_done}s'
 
                 captioned_image = caption_image_overlay(image, title, footer_left, footer_mid, footer_right)
                 captioned_image = insert_image_data_embed(captioned_image, data)

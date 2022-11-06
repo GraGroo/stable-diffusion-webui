@@ -87,10 +87,13 @@ def resolve_vae(checkpoint_file, vae_file="auto"):
     global first_load, vae_dict, vae_list
 
     # if vae_file argument is provided, it takes priority, but not saved
-    if vae_file and vae_file not in default_vae_list:
-        if not os.path.isfile(vae_file):
-            vae_file = "auto"
-            print("VAE provided as function argument doesn't exist")
+    if (
+        vae_file
+        and vae_file not in default_vae_list
+        and not os.path.isfile(vae_file)
+    ):
+        vae_file = "auto"
+        print("VAE provided as function argument doesn't exist")
     # for the first load, if vae-path is provided, it takes priority, saved, and failure is reported
     if first_load and shared.cmd_opts.vae_path is not None:
         if os.path.isfile(shared.cmd_opts.vae_path):
@@ -107,20 +110,23 @@ def resolve_vae(checkpoint_file, vae_file="auto"):
             vae_file = "auto"
             print("Selected VAE doesn't exist")
     # vae-path cmd arg takes priority for auto
-    if vae_file == "auto" and shared.cmd_opts.vae_path is not None:
-        if os.path.isfile(shared.cmd_opts.vae_path):
-            vae_file = shared.cmd_opts.vae_path
-            print("Using VAE provided as command line argument")
+    if (
+        vae_file == "auto"
+        and shared.cmd_opts.vae_path is not None
+        and os.path.isfile(shared.cmd_opts.vae_path)
+    ):
+        vae_file = shared.cmd_opts.vae_path
+        print("Using VAE provided as command line argument")
     # if still not found, try look for ".vae.pt" beside model
     model_path = os.path.splitext(checkpoint_file)[0]
     if vae_file == "auto":
-        vae_file_try = model_path + ".vae.pt"
+        vae_file_try = f"{model_path}.vae.pt"
         if os.path.isfile(vae_file_try):
             vae_file = vae_file_try
             print("Using VAE found beside selected model")
     # if still not found, try look for ".vae.ckpt" beside model
     if vae_file == "auto":
-        vae_file_try = model_path + ".vae.ckpt"
+        vae_file_try = f"{model_path}.vae.ckpt"
         if os.path.isfile(vae_file_try):
             vae_file = vae_file_try
             print("Using VAE found beside selected model")
@@ -141,7 +147,12 @@ def load_vae(model, vae_file=None):
     if vae_file:
         print(f"Loading VAE weights from: {vae_file}")
         vae_ckpt = torch.load(vae_file, map_location=shared.weight_load_location)
-        vae_dict_1 = {k: v for k, v in vae_ckpt["state_dict"].items() if k[0:4] != "loss" and k not in vae_ignore_keys}
+        vae_dict_1 = {
+            k: v
+            for k, v in vae_ckpt["state_dict"].items()
+            if k[:4] != "loss" and k not in vae_ignore_keys
+        }
+
         load_vae_dict(model, vae_dict_1)
 
         # If vae used is not in dict, update it
@@ -203,5 +214,5 @@ def reload_vae_weights(sd_model=None, vae_file="auto"):
     if not shared.cmd_opts.lowvram and not shared.cmd_opts.medvram:
         sd_model.to(devices.device)
 
-    print(f"VAE Weights loaded.")
+    print("VAE Weights loaded.")
     return sd_model

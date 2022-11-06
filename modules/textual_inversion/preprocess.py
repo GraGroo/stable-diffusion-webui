@@ -72,14 +72,14 @@ def preprocess_work(process_src, process_dst, process_width, process_height, pre
         image.save(os.path.join(dst, f"{basename}.png"))
 
         if preprocess_txt_action == 'prepend' and existing_caption:
-            caption = existing_caption + ' ' + caption
+            caption = f'{existing_caption} {caption}'
         elif preprocess_txt_action == 'append' and existing_caption:
-            caption = caption + ' ' + existing_caption
+            caption = f'{caption} {existing_caption}'
         elif preprocess_txt_action == 'copy' and existing_caption:
             caption = existing_caption
 
         caption = caption.strip()
-        
+
         if len(caption) > 0:
             with open(os.path.join(dst, f"{basename}.txt"), "w", encoding="utf8") as file:
                 file.write(caption)
@@ -100,11 +100,7 @@ def preprocess_work(process_src, process_dst, process_width, process_height, pre
             from_w, from_h = image.width, image.height
             to_w, to_h = width, height
         h = from_h * to_w // from_w
-        if inverse_xy:
-            image = image.resize((h, to_w))
-        else:
-            image = image.resize((to_w, h))
-
+        image = image.resize((h, to_w)) if inverse_xy else image.resize((to_w, h))
         split_count = math.ceil((h - to_h * overlap_ratio) / (to_h * (1.0 - overlap_ratio)))
         y_step = (h - to_h) / (split_count - 1)
         for i in range(split_count):
@@ -116,6 +112,7 @@ def preprocess_work(process_src, process_dst, process_width, process_height, pre
             yield splitted
 
 
+
     for index, imagefile in enumerate(tqdm.tqdm(files)):
         subindex = [0]
         filename = os.path.join(src, imagefile)
@@ -125,7 +122,7 @@ def preprocess_work(process_src, process_dst, process_width, process_height, pre
             continue
 
         existing_caption = None
-        existing_caption_filename = os.path.splitext(filename)[0] + '.txt'
+        existing_caption_filename = f'{os.path.splitext(filename)[0]}.txt'
         if os.path.exists(existing_caption_filename):
             with open(existing_caption_filename, 'r', encoding="utf8") as file:
                 existing_caption = file.read()

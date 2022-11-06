@@ -90,9 +90,7 @@ def plaintext_to_html(text):
     return text
 
 def send_gradio_gallery_to_image(x):
-    if len(x) == 0:
-        return None
-    return image_from_url_text(x[0])
+    return None if len(x) == 0 else image_from_url_text(x[0])
 
 def save_files(js_data, images, do_make_zip, index):
     import csv
@@ -188,7 +186,7 @@ def wrap_gradio_call(func, extra_outputs=None, add_stats=False):
             max_debug_str_len = 131072 # (1024*1024)/8
 
             print("Error completing request", file=sys.stderr)
-            argStr = f"Arguments: {str(args)} {str(kwargs)}"
+            argStr = f"Arguments: {args} {kwargs}"
             print(argStr[:max_debug_str_len], file=sys.stderr)
             if len(argStr) > max_debug_str_len:
                 print(f"(Argument list truncated at {max_debug_str_len}/{len(argStr)} characters)", file=sys.stderr)
@@ -201,7 +199,10 @@ def wrap_gradio_call(func, extra_outputs=None, add_stats=False):
             if extra_outputs_array is None:
                 extra_outputs_array = [None, '']
 
-            res = extra_outputs_array + [f"<div class='error'>{plaintext_to_html(type(e).__name__+': '+str(e))}</div>"]
+            res = extra_outputs_array + [
+                f"<div class='error'>{plaintext_to_html(f'{type(e).__name__}: {str(e)}')}</div>"
+            ]
+
 
         shared.state.skipped = False
         shared.state.interrupted = False
@@ -215,7 +216,7 @@ def wrap_gradio_call(func, extra_outputs=None, add_stats=False):
         elapsed_s = elapsed % 60
         elapsed_text = f"{elapsed_s:.2f}s"
         if elapsed_m > 0:
-            elapsed_text = f"{elapsed_m}m "+elapsed_text
+            elapsed_text = f"{elapsed_m}m {elapsed_text}"
 
         if run_memmon:
             mem_stats = {k: -(v//-(1024*1024)) for k, v in shared.mem_mon.stop().items()}
@@ -240,19 +241,17 @@ def wrap_gradio_call(func, extra_outputs=None, add_stats=False):
 def calc_time_left(progress, threshold, label, force_display):
     if progress == 0:
         return ""
+    time_since_start = time.time() - shared.state.time_start
+    eta = (time_since_start/progress)
+    eta_relative = eta-time_since_start
+    if (eta_relative <= threshold or progress <= 0.02) and not force_display:
+        return ""
+    if eta_relative > 3600:
+        return label + time.strftime('%H:%M:%S', time.gmtime(eta_relative))
+    elif eta_relative > 60:
+        return label + time.strftime('%M:%S',  time.gmtime(eta_relative))
     else:
-        time_since_start = time.time() - shared.state.time_start
-        eta = (time_since_start/progress)
-        eta_relative = eta-time_since_start
-        if (eta_relative > threshold and progress > 0.02) or force_display:
-            if eta_relative > 3600:
-                return label + time.strftime('%H:%M:%S', time.gmtime(eta_relative))
-            elif eta_relative > 60:
-                return label + time.strftime('%M:%S',  time.gmtime(eta_relative))
-            else:
-                return label + time.strftime('%Ss',  time.gmtime(eta_relative))
-        else:
-            return ""
+        return label + time.strftime('%Ss',  time.gmtime(eta_relative))
 
 
 def check_progress_call(id_part):
@@ -308,10 +307,16 @@ def check_progress_call_initial(id_part):
 
 
 def roll_artist(prompt):
-    allowed_cats = set([x for x in shared.artist_db.categories() if len(opts.random_artist_categories)==0 or x in opts.random_artist_categories])
+    allowed_cats = {
+        x
+        for x in shared.artist_db.categories()
+        if len(opts.random_artist_categories) == 0
+        or x in opts.random_artist_categories
+    }
+
     artist = random.choice([x for x in shared.artist_db.artists if x.category in allowed_cats])
 
-    return prompt + ", " + artist.name if prompt != '' else artist.name
+    return f"{prompt}, {artist.name}" if prompt != '' else artist.name
 
 
 def visit(x, func, path=""):
@@ -319,12 +324,12 @@ def visit(x, func, path=""):
         for c in x.children:
             visit(c, func, path)
     elif x.label is not None:
-        func(path + "/" + str(x.label), x)
+        func(f"{path}/{str(x.label)}", x)
 
 
 def add_style(name: str, prompt: str, negative_prompt: str):
     if name is None:
-        return [gr_show() for x in range(4)]
+        return [gr_show() for _ in range(4)]
 
     style = modules.styles.PromptStyle(name, prompt, negative_prompt)
     shared.prompt_styles.styles[style.name] = style
@@ -440,7 +445,11 @@ def update_token_counter(text, steps):
 
     flat_prompts = reduce(lambda list1, list2: list1+list2, prompt_schedules)
     prompts = [prompt_text for step, prompt_text in flat_prompts]
-    tokens, token_count, max_length = max([model_hijack.tokenize(prompt) for prompt in prompts], key=lambda args: args[1])
+    tokens, token_count, max_length = max(
+        (model_hijack.tokenize(prompt) for prompt in prompts),
+        key=lambda args: args[1],
+    )
+
     style_class = ' class="red"' if (token_count > max_length) else ""
     return f"<span {style_class}>{token_count}/{max_length}</span>"
 

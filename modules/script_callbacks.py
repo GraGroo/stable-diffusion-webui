@@ -31,16 +31,16 @@ class CFGDenoiserParams:
     def __init__(self, x, image_cond, sigma, sampling_step, total_sampling_steps):
         self.x = x
         """Latent image representation in the process of being denoised"""
-        
+
         self.image_cond = image_cond
         """Conditioning image"""
-        
+
         self.sigma = sigma
         """Current sigma noise step value"""
-        
+
         self.sampling_step = sampling_step
         """Current Sampling step number"""
-        
+
         self.total_sampling_steps = total_sampling_steps
         """Total number of sampling steps planned"""
 
@@ -123,14 +123,14 @@ def cfg_denoiser_callback(params: CFGDenoiserParams):
 
 def add_callback(callbacks, fun):
     stack = [x for x in inspect.stack() if x.filename != __file__]
-    filename = stack[0].filename if len(stack) > 0 else 'unknown file'
+    filename = stack[0].filename if stack else 'unknown file'
 
     callbacks.append(ScriptCallback(filename, fun))
 
     
 def remove_current_script_callbacks():
     stack = [x for x in inspect.stack() if x.filename != __file__]
-    filename = stack[0].filename if len(stack) > 0 else 'unknown file'
+    filename = stack[0].filename if stack else 'unknown file'
     if filename == 'unknown file':
         return
     for callback_list in callback_map.values():
