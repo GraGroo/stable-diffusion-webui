@@ -18,8 +18,7 @@ TypedStorage = torch.storage.TypedStorage if hasattr(torch.storage, 'TypedStorag
 
 
 def encode(*args):
-    out = _codecs.encode(*args)
-    return out
+    return _codecs.encode(*args)
 
 
 class RestrictedUnpickler(pickle.Unpickler):
@@ -94,7 +93,7 @@ def check_pt(filename, extra_handler):
         with open(filename, "rb") as file:
             unpickler = RestrictedUnpickler(file)
             unpickler.extra_handler = extra_handler
-            for i in range(5):
+            for _ in range(5):
                 unpickler.load()
 
 
@@ -133,7 +132,11 @@ def load_with_extra(filename, extra_handler=None, *args, **kwargs):
     except pickle.UnpicklingError:
         print(f"Error verifying pickled file from {filename}:", file=sys.stderr)
         print(traceback.format_exc(), file=sys.stderr)
-        print(f"-----> !!!! The file is most likely corrupted !!!! <-----", file=sys.stderr)
+        print(
+            "-----> !!!! The file is most likely corrupted !!!! <-----",
+            file=sys.stderr,
+        )
+
         print(f"You can skip this check with --disable-safe-unpickle commandline argument, but that is not going to help you.\n\n", file=sys.stderr)
         return None
 

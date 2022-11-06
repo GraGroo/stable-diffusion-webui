@@ -2,7 +2,7 @@ from pyngrok import ngrok, conf, exception
 
 
 def connect(token, port, region):
-    if token == None:
+    if token is None:
         token = 'None'
     config = conf.PyngrokConfig(
         auth_token=token, region=region

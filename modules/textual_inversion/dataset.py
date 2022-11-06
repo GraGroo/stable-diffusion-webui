@@ -55,7 +55,7 @@ class PersonalizedBase(Dataset):
             except Exception:
                 continue
 
-            text_filename = os.path.splitext(path)[0] + ".txt"
+            text_filename = f"{os.path.splitext(path)[0]}.txt"
             filename = os.path.basename(path)
 
             if os.path.exists(text_filename):
@@ -85,7 +85,7 @@ class PersonalizedBase(Dataset):
 
             self.dataset.append(entry)
 
-        assert len(self.dataset) > 0, "No images have been found in the dataset."
+        assert self.dataset, "No images have been found in the dataset."
         self.length = len(self.dataset) * repeats // batch_size
 
         self.dataset_length = len(self.dataset)

@@ -60,7 +60,7 @@ def run_extras(extras_mode, resize_mode, image, image_folder, input_dir, output_
     # Also keep track of original file names
     imageNameArr = []
     outputs = []
-    
+
     if extras_mode == 1:
         #convert file to pillow image
         for img in image_folder:
@@ -233,16 +233,18 @@ def run_pnginfo(image):
 
     geninfo = items.get('parameters', geninfo)
 
-    info = ''
-    for key, text in items.items():
-        info += f"""
+    info = ''.join(
+        f"""
 <div>
 <p><b>{plaintext_to_html(str(key))}</b></p>
 <p>{plaintext_to_html(str(text))}</p>
 </div>
-""".strip()+"\n"
+""".strip()
+        + "\n"
+        for key, text in items.items()
+    )
 
-    if len(info) == 0:
+    if not info:
         message = "Nothing found in the image."
         info = f"<div><p>{message}<p></div>"
 
@@ -285,7 +287,7 @@ def run_modelmerger(primary_model_name, secondary_model_name, teritary_model_nam
     }
     theta_func1, theta_func2 = theta_funcs[interp_method]
 
-    print(f"Merging...")
+    print("Merging...")
 
     if theta_func1:
         for key in tqdm.tqdm(theta_1.keys()):
@@ -314,8 +316,13 @@ def run_modelmerger(primary_model_name, secondary_model_name, teritary_model_nam
 
     ckpt_dir = shared.cmd_opts.ckpt_dir or sd_models.model_path
 
-    filename = primary_model_info.model_name + '_' + str(round(1-multiplier, 2)) + '-' + secondary_model_info.model_name + '_' + str(round(multiplier, 2)) + '-' + interp_method.replace(" ", "_") + '-merged.ckpt'
-    filename = filename if custom_name == '' else (custom_name + '.ckpt')
+    filename = (
+        f'{primary_model_info.model_name}_{str(round(1 - multiplier, 2))}-{secondary_model_info.model_name}_{str(round(multiplier, 2))}-'
+        + interp_method.replace(" ", "_")
+        + '-merged.ckpt'
+    )
+
+    filename = filename if custom_name == '' else f'{custom_name}.ckpt'
     output_modelname = os.path.join(ckpt_dir, filename)
 
     print(f"Saving to {output_modelname}...")
@@ -323,5 +330,8 @@ def run_modelmerger(primary_model_name, secondary_model_name, teritary_model_nam
 
     sd_models.list_models()
 
-    print(f"Checkpoint saved.")
-    return ["Checkpoint saved to " + output_modelname] + [gr.Dropdown.update(choices=sd_models.checkpoint_tiles()) for _ in range(4)]
+    print("Checkpoint saved.")
+    return [f"Checkpoint saved to {output_modelname}"] + [
+        gr.Dropdown.update(choices=sd_models.checkpoint_tiles())
+        for _ in range(4)
+    ]

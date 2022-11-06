@@ -135,10 +135,7 @@ def get_deepbooru_tags_from_model(model, tags, pil_image, threshold, deepbooru_o
 
     y = model.predict(image)[0]
 
-    result_dict = {}
-
-    for i, tag in enumerate(tags):
-        result_dict[tag] = y[i]
+    result_dict = {tag: y[i] for i, tag in enumerate(tags)}
 
     unsorted_tags_in_theshold = []
     result_tags_print = []
@@ -151,10 +148,7 @@ def get_deepbooru_tags_from_model(model, tags, pil_image, threshold, deepbooru_o
 
     # sort tags
     result_tags_out = []
-    sort_ndx = 0
-    if alpha_sort:
-        sort_ndx = 1
-
+    sort_ndx = 1 if alpha_sort else 0
     # sort by reverse by likelihood and normal for alpha, and format tag text as requested
     unsorted_tags_in_theshold.sort(key=lambda y: y[sort_ndx], reverse=(not alpha_sort))
     for weight, tag in unsorted_tags_in_theshold:

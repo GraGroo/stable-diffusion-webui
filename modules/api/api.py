@@ -237,10 +237,13 @@ class Api:
         options = {}
         for key in shared.opts.data.keys():
             metadata = shared.opts.data_labels.get(key)
-            if(metadata is not None):
-                options.update({key: shared.opts.data.get(key, shared.opts.data_labels.get(key).default)})
+            if (metadata is not None):
+                options[key] = shared.opts.data.get(
+                    key, shared.opts.data_labels.get(key).default
+                )
+
             else:
-                options.update({key: shared.opts.data.get(key, None)})
+                options[key] = shared.opts.data.get(key, None)
 
         return options
 
@@ -248,13 +251,6 @@ class Api:
         # currently req has all options fields even if you send a dict like { "send_seed": false }, which means it will
         # overwrite all options with default values.
         raise RuntimeError('Setting options via API is not supported')
-
-        reqDict = vars(req)
-        for o in reqDict:
-            setattr(shared.opts, o, reqDict[o])
-
-        shared.opts.save(shared.config_filename)
-        return
 
     def get_cmd_flags(self):
         return vars(shared.cmd_opts)
